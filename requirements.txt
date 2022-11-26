@@ -6,4 +6,4 @@ flask-restplus
 cyrtranslit
 gunicorn
 opentelemetry-distro
-
+opentelemetry-exporter-jaeger
