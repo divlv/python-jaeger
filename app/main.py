@@ -3,6 +3,7 @@ import random
 import datetime
 import time
 
+
 from flask import Flask
 from flask import Blueprint
 from flask_cors import CORS
@@ -16,7 +17,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 trace.set_tracer_provider(
 TracerProvider(
-        resource=Resource.create({SERVICE_NAME: "my-helloworld-service"})
+        resource=Resource.create({SERVICE_NAME: "SpaceX Moon Mission"})
     )
 )
 tracer = trace.get_tracer(__name__)
@@ -24,7 +25,7 @@ tracer = trace.get_tracer(__name__)
 # create a JaegerExporter
 jaeger_exporter = JaegerExporter(
     # configure agent
-    agent_host_name='localhost',
+    agent_host_name='jaegerdemo.hopto.org',
     agent_port=6831,
     # optional: configure also collector
     # collector_endpoint='http://localhost:14268/api/traces?format=jaeger.thrift',
@@ -32,6 +33,7 @@ jaeger_exporter = JaegerExporter(
     # password=xxxx, # optional
     # max_tag_value_length=None # optional
 )
+
 
 # Create a BatchSpanProcessor and add the exporter to it
 span_processor = BatchSpanProcessor(jaeger_exporter)
@@ -87,13 +89,34 @@ class Work(ApiResource):
         """
         Sample worker with some random delay (returns random number)
         """
-        with tracer.start_as_current_span("My Work"):
-            time.sleep(random.randint(2, 3))
+        with tracer.start_as_current_span("My Work") as span:
+
+            # formatted date time
+            now = datetime.datetime.now()
+            span.set_attribute("Local time!!!!!!!!!!!!!!!!!!!", now.strftime("%d/%m/%Y %H:%M:%S"))
+
+            time.sleep(random.randint(2, 10))
 
         return {'status': 'OK', 'number': random.randint(1, 100)}
 
 
 api.add_resource(Work, '/v1/worker')
+
+
+class WorkError(ApiResource):
+    def get(self):
+        """
+        Sample worker with some random delay (returns random number)
+        """
+        with tracer.start_as_current_span("My Work 2") as span:
+            span.set_attribute("Who started me??", "Chuck Norris!")
+            if random.randint(1, 100) > 50:
+                a = 1/0
+
+        return {'status': 'OK', 'number': random.randint(1, 100)}
+
+
+api.add_resource(WorkError, '/v1/error')
 
 
 #
