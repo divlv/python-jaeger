@@ -1,0 +1,9 @@
+flask==1.1.4
+flask-restful
+flask-cors
+Werkzeug==0.16.1
+flask-restplus
+cyrtranslit
+gunicorn
+opentelemetry-distro
+
