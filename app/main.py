@@ -2,8 +2,8 @@ import ssl
 import random
 import datetime
 import time
-
-
+import os
+import urllib.request
 from flask import Flask
 from flask import Blueprint
 from flask_cors import CORS
@@ -15,25 +15,31 @@ from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
+serviceName = "SpaceX Moon Mission"
+remoteAddressToCall = os.getenv("REMOTE_URL_TO_CALL", "https://en.wikipedia.org/wiki/Tracing_(software)")
+
 trace.set_tracer_provider(
-TracerProvider(
-        resource=Resource.create({SERVICE_NAME: "SpaceX Moon Mission"})
+    TracerProvider(
+        resource=Resource.create({SERVICE_NAME: serviceName})
     )
 )
 tracer = trace.get_tracer(__name__)
 
-# create a JaegerExporter
-jaeger_exporter = JaegerExporter(
-    # configure agent
-    agent_host_name='jaegerdemo.hopto.org',
-    agent_port=6831,
-    # optional: configure also collector
-    # collector_endpoint='http://localhost:14268/api/traces?format=jaeger.thrift',
-    # username=xxxx, # optional
-    # password=xxxx, # optional
-    # max_tag_value_length=None # optional
-)
-
+# Сreate a JaegerExporter
+# Configured via environment variables:
+# OTEL_EXPORTER_JAEGER_AGENT_HOST=jaegerdemo.hopto.org
+# OTEL_EXPORTER_JAEGER_AGENT_PORT=6831
+# See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/jaeger/jaeger.html
+jaeger_exporter = JaegerExporter()
+# configure agent
+# agent_host_name='jaegerdemo.hopto.org',
+# agent_port=6831,
+# optional: configure also collector
+# collector_endpoint='http://localhost:14268/api/traces?format=jaeger.thrift',
+# username=xxxx, # optional
+# password=xxxx, # optional
+# max_tag_value_length=None # optional
+# )
 
 # Create a BatchSpanProcessor and add the exporter to it
 span_processor = BatchSpanProcessor(jaeger_exporter)
@@ -41,37 +47,28 @@ span_processor = BatchSpanProcessor(jaeger_exporter)
 # add to the tracer
 trace.get_tracer_provider().add_span_processor(span_processor)
 
-
 app = Flask(__name__)
 
-default_web = Blueprint(
-    "default_web", __name__, url_prefix="", template_folder="templates"
-)
+# Registering 2 Blueprints for static web and Swagger UI:
+default_web = Blueprint("default_web", __name__, url_prefix="", template_folder="templates")
 
 
 @default_web.route("/")
 def home_page():
-    return "<html><body>Hello World!<br/><br/><a href='/api/'>Go to /api for Swagger</a></body></html>"
+    return "<html><body>OpenTelemetry Demo w/Python.<br/><br/><a href='/api/'>Go to /api for Swagger UI</a></body></html>"
 
 
 app.register_blueprint(default_web)
 
-
 swagger = Blueprint("swagger", __name__, url_prefix="/api")
-
-
 api = Api(swagger, version="1.0",
-          title="Service1 REST service",
+          title=serviceName,
           description="Just a sample service (Service1)",
           default="Services",
           default_label="All available services list:")
-
-
+app.register_blueprint(swagger)
 
 context = ssl._create_unverified_context()
-
-
-app.register_blueprint(swagger)
 
 
 class HealthCheck(ApiResource):
@@ -81,19 +78,20 @@ class HealthCheck(ApiResource):
         """
         return {'status': 'UP', 'serverTime': str(datetime.datetime.now()), 'tag': '#GTO'}
 
+
 api.add_resource(HealthCheck, '/h')
 
 
 class Work(ApiResource):
     def get(self):
         """
-        Sample worker with some random delay (returns random number)
+        Worker endpoint with some random delay of 2..10 sec. (returns just a random number)
         """
-        with tracer.start_as_current_span("My Work") as span:
-
-            # formatted date time
+        # Get full URL of the current request
+        url = urllib.request.Request(api.url_for(Work, _external=True))
+        with tracer.start_as_current_span(str(url.get_full_url()) + " - Some worker") as span:
             now = datetime.datetime.now()
-            span.set_attribute("Local time!!!!!!!!!!!!!!!!!!!", now.strftime("%d/%m/%Y %H:%M:%S"))
+            span.set_attribute("SPACEX local time", now.strftime("%d/%m/%Y %H:%M:%S"))
 
             time.sleep(random.randint(2, 10))
 
@@ -103,20 +101,70 @@ class Work(ApiResource):
 api.add_resource(Work, '/v1/worker')
 
 
+class NestedWork(ApiResource):
+    def get(self):
+        """
+        This Worker contains nested span. Both with some random delay of 2..10 sec. (returns just a random number)
+        """
+        # Get full URL of the current request
+        url = urllib.request.Request(api.url_for(Work, _external=True))
+        with tracer.start_as_current_span(str(url.get_full_url()) + " - Envelope worker") as span:
+            now = datetime.datetime.now()
+            span.set_attribute("SPACEX local time", now.strftime("%d/%m/%Y %H:%M:%S"))
+            time.sleep(random.randint(2, 10))
+            with tracer.start_as_current_span(str(url.get_full_url()) + " - Nested worker") as span:
+                now = datetime.datetime.now()
+                span.set_attribute("NESTED SPACEX local time", now.strftime("%d/%m/%Y %H:%M:%S"))
+                time.sleep(random.randint(2, 10))
+
+        return {'status': 'OK', 'number': random.randint(1, 100)}
+
+
+api.add_resource(NestedWork, '/v1/nestedworker')
+
+
 class WorkError(ApiResource):
     def get(self):
         """
-        Sample worker with some random delay (returns random number)
+        Worker with 50% error probability (returns random number)
         """
-        with tracer.start_as_current_span("My Work 2") as span:
+        # Get full URL of the current request
+        url = urllib.request.Request(api.url_for(WorkError, _external=True))
+        with tracer.start_as_current_span(str(url.get_full_url()) + " - Not stable worker") as span:
             span.set_attribute("Who started me??", "Chuck Norris!")
             if random.randint(1, 100) > 50:
-                a = 1/0
+                return 1 / 0
 
         return {'status': 'OK', 'number': random.randint(1, 100)}
 
 
 api.add_resource(WorkError, '/v1/error')
+
+
+class RemoteCall(ApiResource):
+    @api.doc(
+        description="This worker calls remote resource - " + remoteAddressToCall
+    )
+    def get(self):
+        """
+        This worker calls remote resource - URL is configured via ENV vars.(saving remote data in the span)
+        """
+        # Get full URL of the current request
+        url = urllib.request.Request(api.url_for(RemoteCall, _external=True))
+        # get from env
+
+        with tracer.start_as_current_span(str(url.get_full_url()) + " - Remote call worker") as span:
+            span.set_attribute("CALLING Remote address", remoteAddressToCall)
+            # request remote resource
+
+            with urllib.request.urlopen(remoteAddressToCall, context=context) as response:
+                html = response.read()
+                span.set_attribute("Remote response (100 bytes)", str(html[:100]) + "...")
+
+        return {'Job': 'Done'}
+
+
+api.add_resource(RemoteCall, '/v1/remotecall')
 
 
 #
