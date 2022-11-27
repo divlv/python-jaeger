@@ -27,7 +27,7 @@ Everything which is needed for this demo is available as Docker images, so we'll
 ## Why "localhost" is needed?
 
 In this demo we will use 2 instances of **python-jaeger** application. 
-The 1st instance will be running on _localhost_ (from sources or Docker container) and the 2nd instance will be running on remote host (**remoteservice.hopto.org**). The 1st instance may report all activities to Jaeger collector directly (e.g. calling it's `/v1/worker` endpoint) or demonstrate a "cascade-call", calling `/v1/remotecall` with configured environment variable `-e REMOTE_URL_TO_CALL=remoteservice.hopto.org` calling the 2nd instance as a demo of complex multi-worker microservice architecture.
+The 1st instance will be running on _localhost_ (from sources or Docker container) and the 2nd instance will be running on remote host (**remoteservice.hopto.org**). The 1st instance may report all activities to Jaeger collector directly (e.g. calling it's `/v1/worker` endpoint) or demonstrate a "cascade-call", calling `/v1/remotecall` with configured environment variable `-e REMOTE_URL_TO_CALL=http://remoteservice.hopto.org/api/v1/worker` calling the 2nd instance as a demo of complex multi-worker microservice architecture.
 We may use either **localhost** or *remoteservice.hopto.org** for simple demo, but we need both for more complex demo.
 We will see the result (report) of this "cascade-call" in Jaeger UI width 2 spans (1st span is for the 1st instance and 2nd span is for the 2nd instance). 
 
