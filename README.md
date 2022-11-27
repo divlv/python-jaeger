@@ -18,3 +18,8 @@ docker run -it --net=host jaegertracing/all-in-one:latest
 
 Then go to http://jaegerdemo.hopto.org:16686 and we're here.
 
+                          
+
+docker run -it --net=host -e REMOTE_URL_TO_CALL=jaegerdemo.hopto.org -e OTEL_EXPORTER_JAEGER_AGENT_HOST=jaegerdemo.hopto.org -e OTEL_EXPORTER_JAEGER_AGENT_PORT=6831 dimedrol/python-jaeger
+
+http://remoteservice.hopto.org/

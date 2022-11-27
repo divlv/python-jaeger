@@ -6,8 +6,9 @@ import os
 import urllib.request
 from flask import Flask
 from flask import Blueprint
+from flask import request as frequest
 from flask_cors import CORS
-from flask_restplus import Api, fields
+from flask_restplus import Api
 from flask_restplus import Resource as ApiResource
 from opentelemetry import trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
@@ -40,6 +41,7 @@ span_processor = BatchSpanProcessor(jaeger_exporter)
 trace.get_tracer_provider().add_span_processor(span_processor)
 
 app = Flask(__name__)
+# Allow remote calls -- CORS
 cors = CORS(app, resources={r"/.*/h*": {"origins": "*"},
                             r"/.*/worker*": {"origins": "*"},
                             r"/.*/nestedworker*": {"origins": "*"},
@@ -87,9 +89,14 @@ class Work(ApiResource):
         """
         # Get full URL of the current request
         url = urllib.request.Request(api.url_for(Work, _external=True))
+
+        # Get remote client IP address
+        remote_addr = frequest.remote_addr
+
         with tracer.start_as_current_span(str(url.get_full_url()) + " - Some worker") as span:
             now = datetime.datetime.now()
             span.set_attribute("SPACEX local time", now.strftime("%d/%m/%Y %H:%M:%S"))
+            span.set_attribute("WHO's CALLING ME? REMOTE CLIENT IP", str(remote_addr))
 
             time.sleep(random.randint(2, 10))
 
