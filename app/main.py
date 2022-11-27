@@ -31,15 +31,7 @@ tracer = trace.get_tracer(__name__)
 # OTEL_EXPORTER_JAEGER_AGENT_PORT=6831
 # See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/jaeger/jaeger.html
 jaeger_exporter = JaegerExporter()
-# configure agent
-# agent_host_name='jaegerdemo.hopto.org',
-# agent_port=6831,
-# optional: configure also collector
-# collector_endpoint='http://localhost:14268/api/traces?format=jaeger.thrift',
-# username=xxxx, # optional
-# password=xxxx, # optional
-# max_tag_value_length=None # optional
-# )
+
 
 # Create a BatchSpanProcessor and add the exporter to it
 span_processor = BatchSpanProcessor(jaeger_exporter)
@@ -48,6 +40,12 @@ span_processor = BatchSpanProcessor(jaeger_exporter)
 trace.get_tracer_provider().add_span_processor(span_processor)
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/.*/h*": {"origins": "*"},
+                            r"/.*/worker*": {"origins": "*"},
+                            r"/.*/nestedworker*": {"origins": "*"},
+                            r"/.*/error*": {"origins": "*"},
+                            r"/.*/remotecall*": {"origins": "*"}
+                            })
 
 # Registering 2 Blueprints for static web and Swagger UI:
 default_web = Blueprint("default_web", __name__, url_prefix="", template_folder="templates")
