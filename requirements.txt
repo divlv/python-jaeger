@@ -1,5 +1,6 @@
 flask==1.1.4
 flask-restful
+markupsafe==2.0.1
 flask-cors
 Werkzeug==0.16.1
 flask-restplus

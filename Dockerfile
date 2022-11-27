@@ -10,4 +10,4 @@ RUN pip install -r requirements.txt
 
 CMD sed -i -- 's/^app\.run/#&/' ./main.py
 
-CMD ["gunicorn", "-w 4", "-b 0.0.0.0:80", "main:app"]
+CMD ["gunicorn", "-w 2", "-b 0.0.0.0:80", "main:app"]
