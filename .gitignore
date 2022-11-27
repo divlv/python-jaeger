@@ -127,3 +127,27 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+###################################
+
+# filter everything for the following...
+.idea/
+target
+*.bak
+*.xml
+deploy
+~$perv*
+*.iml
+__pycache__
+compile.bat
+
+# ... except the .gitignore...
+!.gitignore
+scripts/
+*.dll
+~$p
+.sass-cache
+
+app/.idea/workspace.xml
+app/.idea/workspace.xml
