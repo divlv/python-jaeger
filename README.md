@@ -1,13 +1,19 @@
 # OpenTelemetry Demo w/Python
 
 This is sample demo Python project which illustrates how Open Telemetry works.
-As an OpenTelemetry API implementation we'll use [Jaeger](https://www.jaegertracing.io/).
+As an OpenTelemetry API implementation in our case is [Jaeger](https://www.jaegertracing.io/).
 
                                  
 To simplify the demo we'll use free DNS names from [noip.com](https://www.noip.com/).
 
-Let's assume, we have "_jaegerdemo.hopto.org_" host for Jaeger (data collector) UI.
+Let's use NoIP's "**hopto.org**" zone for our demo purposes.
 
+
+### Hosts
+In this demo we will use 3 hosts:
+- **localhost** (for starting python-jaeger application)
+- **remoteservice.hopto.org** (for starting 2nd instance if python-jaeger application, i.e. some remote service to call from the 1st service, which is running on localhost) and
+- **jaegerdemo.hopto.org** (Jaeger UI, data collector)
 
 
 Run Jaeger in Docker. Use `--net=host` to simplify the ports-related stuff. Security if out of this demo scope. (Ahh, you always got IPTables, right?! ;-) )  
