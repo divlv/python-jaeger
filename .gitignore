@@ -139,7 +139,6 @@ target
 deploy
 ~$perv*
 *.iml
-*.drawio
 __pycache__
 compile.bat
 
